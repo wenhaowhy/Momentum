@@ -1,0 +1,83 @@
+---
+title: "Lit Review and Data Analysis"
+output: html_document
+---
+
+"Momentum has its moments" by Barroso and Santa-Clara (2014) highlights that momentum strategy provides investors with the highest returns, but is often punctuated by negative skewness. The paper, therefore, seeks to manage the time varying risk of momentum in order to stabilize and increase returns.
+
+We replicate the main results of this paper using US stocks data from 1998 through 2007.
+
+Literature Review:
+
+The literature on momentum strategy mainly focuses on its time-varying risk. In "Market crashes" by Daniel and Moskowitz (2013) show that momentum returns are correlated with volatility risk. In "Value and Momentum Everywhere", Barroso and Santa-Clara offer a joint analysis of the impact of value and momentum on equity returns. Their study finds significant comovements in value and momentum across asset classes over time. In "Risk Adjusted Time Series Momentum", Dudler, Martin, and Gmuer, Bruno and Malamud, Semyon, construct measures of momentum-specific volatility and use such measures for risk management. Their findings show that although doing so may increase Sharpe ratios, it can also lead to more negative skewness. Nonetheless, risk managed momentum offers higher diversification benefits than standard momentum returns. In "Momentum Strategies", Louis K.C. Chan, Narasimhan Jegadeesh, and Josef Lakonishok examine the determinants of future returns from past returns. They argue that market risk, size, and book-to-markets do not explain the fluctuations and that earnings forecasts only sluggishly respond to past news.
+
+Summary of the data:
+
+```{r, echo = FALSE}
+library(ws.data)
+
+data("daily.2004")
+data("daily.2005")
+
+daily.2004$v.date <- as.Date(daily.2004$v.date)
+daily.2005$v.date <- as.Date(daily.2005$v.date)
+daily.2004 <- subset(daily.2004, daily.2004$v.date >= as.Date("2004-01-01") & daily.2004$v.date <= as.Date("2004-11-30"))
+unique.id <- unique(daily.2004$id)
+daily.2005 <- subset(daily.2005, daily.2005$v.date >= as.Date("2005-01-01") & daily.2005$v.date < as.Date("2005-02-01"))
+unique.id.2 <- unique(daily.2005$id)
+final.frame <- data.frame(id = numeric(), ten.month.return = numeric())
+
+summary(daily.2004)
+```
+
+We are looking at the ten month period between January and November of 2004, as well as the month of January 2005.
+
+For this portion of the data analysis, the goal is to show that positive returns in the past are correlated to positive returns in the future, and vice versa. To do this, we calculated returns for each stock between January and November 2004 and ranked them from greatest return to least. Looked at the top 10% of stocks and the bottom, and compared their average returns during the month of January 2005.
+
+```{r, cache = TRUE, echo = FALSE}
+for (i in 1:length(unique.id)){
+  id <- unique.id[i]
+  temp.frame <- subset(daily.2004, daily.2004$id == unique.id[i])
+  if (nrow(temp.frame == 230)){
+    temp.frame <- temp.frame[order(temp.frame$v.date),]
+    ten.month.return <- (temp.frame$price[nrow(temp.frame)] - temp.frame$price[1])/temp.frame$price[1]
+    unique.frame <- data.frame(id = id, ten.month.return = ten.month.return)
+    final.frame <- rbind(final.frame, unique.frame)
+  }
+}
+
+decile <- round(nrow(final.frame)/10)
+new.frame <- final.frame[order(-final.frame$ten.month.return),]
+top.decile <- new.frame$id[1:decile]
+new.frame <- final.frame[order(final.frame$ten.month.return),]
+bottom.decile <- new.frame$id[1:decile]
+
+final.frame.2 <- data.frame(id = numeric(), monthly.return = numeric())
+
+for (i in 1:length(unique.id.2)){
+  id <- unique.id.2[i]
+  temp.frame <- subset(daily.2005, daily.2005$id == unique.id.2[i])
+  temp.frame <- temp.frame[order(temp.frame$v.date),]
+  m.return <- (temp.frame$price[nrow(temp.frame)] - temp.frame$price[1])/temp.frame$price[1]
+  unique.frame <- data.frame(id = id, monthly.return = m.return)
+  final.frame.2 <- rbind(final.frame.2, unique.frame)
+}
+
+top.decile.frame <- subset(final.frame.2, final.frame.2$id %in% top.decile & final.frame.2$monthly.return > -10 & final.frame.2$monthly.return < 10)
+bottom.decile.frame <- subset(final.frame.2, final.frame.2$id %in% bottom.decile & final.frame.2$monthly.return > -10 & final.frame.2$monthly.return < 10)
+top.decile.mean.return <- mean(top.decile.frame$monthly.return)
+bottom.decile.mean.return <- mean(bottom.decile.frame$monthly.return)
+```
+
+Average return of the top decile of stocks: 
+```{r}
+top.decile.mean.return
+```
+
+Average return of the bottom decile of stocks: 
+```{r}
+bottom.decile.mean.return
+```
+
+
+The top performing stocks from the ten month period prior to January performed much better than the worst performing stocks during that time period. This supports the idea that performance in the past is correlated to performance in the future.
